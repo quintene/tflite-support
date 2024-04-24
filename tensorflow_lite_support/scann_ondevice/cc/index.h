@@ -26,6 +26,8 @@ limitations under the License.
 #include "leveldb/table.h"  // from @com_google_leveldb
 #include "tensorflow_lite_support/scann_ondevice/cc/mem_random_access_file.h"
 #include "tensorflow_lite_support/scann_ondevice/proto/index_config.pb.h"
+#include "leveldb/write_batch.h"
+
 
 namespace tflite {
 namespace scann_ondevice {
@@ -44,6 +46,14 @@ class Index {
   // this object.
   static absl::StatusOr<std::unique_ptr<Index>> CreateFromIndexBuffer(
       const char* buffer_data, size_t buffer_size);
+
+
+  absl::Status Append() const;
+
+  // overwrite 
+  absl::Status OverwriteAtKey() const;
+
+
 
   // Parses and returns the `IndexConfig` stored in the index file.
   absl::StatusOr<IndexConfig> GetIndexConfig() const;

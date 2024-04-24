@@ -28,7 +28,7 @@ namespace tflite {
 namespace scann_ondevice {
 
 struct IndexedArtifacts {
-  // Config for on-device scam. Contains pretrained parts such as partition
+  // Config for on-device scann. Contains pretrained parts such as partition
   // centroids, compression codebook.
   tflite::scann_ondevice::core::ScannOnDeviceConfig config;
 

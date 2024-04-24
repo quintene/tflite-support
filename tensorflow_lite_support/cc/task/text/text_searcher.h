@@ -80,6 +80,11 @@ class TextSearcher
   tflite::support::StatusOr<tflite::task::processor::SearchResult> Search(
       const std::string& input);
 
+
+  // Performs embedding extraction on the provided text input, followed by
+  // lookup which partiotion is closes in the index and append to index.
+  tflite::support::StatusOr<tflite::task::processor::SearchResult> AddEmbedding(const std::string& input, const std::string& metadata);
+
   // Provides access to the opaque user info stored in the index file (if any),
   // in raw binary form. Returns an empty string if the index doesn't contain
   // user info.

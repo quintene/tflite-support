@@ -33,6 +33,8 @@ limitations under the License.
 
 #include <memory>
 #include <string>
+#include <fstream>  // Add this line to include the necessary header file for std::ofstream
+
 
 #include "absl/memory/memory.h"  // from @com_google_absl
 #include "absl/strings/str_format.h"  // from @com_google_absl
@@ -70,6 +72,8 @@ int64 GetPageSizeAlignedOffset(int64 offset) {
 }  // namespace
 
 /* static */
+
+
 StatusOr<std::unique_ptr<ExternalFileHandler>>
 ExternalFileHandler::CreateFromExternalFile(const ExternalFile* external_file) {
   // Use absl::WrapUnique() to call private constructor:
@@ -81,6 +85,120 @@ ExternalFileHandler::CreateFromExternalFile(const ExternalFile* external_file) {
 
   return handler;
 }
+
+  absl::Status ExternalFileHandler::WriteData(const std::string& data) {
+
+    
+
+    // merge string from filename and external_file_.file_descriptor_meta().fd();
+    std::string filename = external_file_.file_name();
+    int fd = external_file_.file_descriptor_meta().fd();
+    std::string path = filename + std::to_string(fd);    
+
+
+    // if has file name
+    if (!external_file_.file_name().empty()) {
+      // open file
+      std::ofstream ofs(external_file_.file_name().c_str(), std::ofstream::out | std::ofstream::trunc);
+      if (!ofs.is_open()) {
+        return absl::InternalError("Failed to open file for writing");
+      }
+
+      ofs << data;
+      ofs.close();
+    } else {
+
+         //std::unique_ptr<ExternalFile> external_file = std::make_unique<ExternalFile>();
+         //external_file->set_file_content(data);    
+
+         //external_file_ = std::move(external_file);
+
+    }
+
+
+
+
+   // Unmap the old memory region
+   //if (buffer_ != MAP_FAILED) {
+   //  munmap(buffer_, buffer_aligned_size_);
+   //}
+
+    // Map the new memory region
+    //RETURN_IF_ERROR(MapExternalFile());
+
+
+    //return absl::OkStatus();
+  }
+/*
+
+    // If the file is already mapped, unmap it
+    if (buffer_ != nullptr) {
+      munmap(buffer_, buffer_aligned_size_);
+      buffer_ = nullptr;
+    }
+
+    // Get the size of the file
+    //struct stat st;
+    //if (fstat(owned_fd_, &st) == -1) {
+    //  return absl::InternalError("Failed to get file size");
+    // }
+
+    // Memory-map the file
+    buffer_ = mmap(0, data.size(), PROT_WRITE, MAP_SHARED, owned_fd_, 0);
+    if (buffer_ == MAP_FAILED) {
+      return absl::InternalError("Failed to map file");
+    }
+*/
+    // Write the data to the memory-mapped file
+    //std::memcpy(map, data.c_str(), data.size());
+
+    // Ensure the changes are written to the file
+    //f (msync(map, data.size(), MS_SYNC) == -1) {
+     // munmap(map, data.size());
+    //  return absl::InternalError("Failed to sync changes");
+    //}
+
+
+
+    /*int fd = -1;
+
+    fd = external_file_.file_descriptor_meta().fd();
+
+    // Update the buffer to point to the new data
+    //buffer_ = static_cast<const char*>(map);
+
+    // from data get offset
+   // data_offset_ = external_file_.file_descriptor_meta().offset();
+
+    buffer_size_ = data.size();
+    
+    // If buffer_offset_ is not multiple of sysconf(_SC_PAGE_SIZE), align with
+    // extra leading bytes and adjust buffer_size_ to account for the extra
+    // leading bytes.
+    buffer_aligned_offset_ = GetPageSizeAlignedOffset(buffer_offset_);
+    buffer_aligned_size_ = buffer_size_ + buffer_offset_ - buffer_aligned_offset_;
+    // Map into memory.
+
+    */
+    //buffer_ = mmap(/*addr=*/nullptr, buffer_aligned_size_, PROT_READ, MAP_SHARED,
+    //              fd, buffer_aligned_offset_);
+
+    //buffer_ = map;
+
+  //  if (buffer_ == MAP_FAILED) {
+   //   return CreateStatusWithPayload(
+   //       StatusCode::kUnknown,
+   //       absl::StrFormat("Unable to map file to memory buffer, errno=%d", errno),
+   //       TfLiteSupportStatus::kFileMmapError);
+   // }
+
+
+    // Clean up
+    //munmap(map, data.size();
+
+  //  return absl::OkStatus();
+  //}
+
 
 absl::Status ExternalFileHandler::MapExternalFile() {
   if (!external_file_.file_content().empty()) {

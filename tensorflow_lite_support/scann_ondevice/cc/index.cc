@@ -34,104 +34,255 @@ limitations under the License.
 #include "tensorflow_lite_support/scann_ondevice/cc/utils.h"
 #include "tensorflow_lite_support/scann_ondevice/proto/index_config.pb.h"
 
-namespace tflite {
-namespace scann_ondevice {
 
-namespace {
+    
+namespace tflite
+{
+  namespace scann_ondevice
+  {
 
-// Helper function to get the iterator value associated to the provided key.
-//
-// Important: the underlying storage for the returned string view is owned by
-// the provided iterator, and only valid until this iterator is used again with
-// a different key. See:
-// https://github.com/google/leveldb/blob/main/include/leveldb/iterator.h
-absl::StatusOr<absl::string_view> GetValueForKey(leveldb::Iterator* iterator,
-                                                 std::string& key) {
-  iterator->Seek(key);
-  if (!iterator->Valid() || iterator->key() != key ||
-      !iterator->status().ok()) {
-    return absl::NotFoundError(
-        absl::StrFormat("Unable to find key in the index: %s", key));
+    namespace
+    {
+
+      // Helper function to get the iterator value associated to the provided key.
+      //
+      // Important: the underlying storage for the returned string view is owned by
+      // the provided iterator, and only valid until this iterator is used again with
+      // a different key. See:
+      // https://github.com/google/leveldb/blob/main/include/leveldb/iterator.h
+      absl::StatusOr<absl::string_view> GetValueForKey(leveldb::Iterator *iterator,
+                                                       std::string &key)
+      {
+        iterator->Seek(key);
+        if (!iterator->Valid() || iterator->key() != key ||
+            !iterator->status().ok())
+        {
+          return absl::NotFoundError(
+              absl::StrFormat("Unable to find key in the index: %s", key));
+        }
+        leveldb::Slice value = iterator->value();
+        return absl::string_view(value.data(), value.size());
+      }
+    } // namespace
+
+    absl::Status Index::Append() const
+    {
+      // Example of adding an entry to the table
+      std::string key = "example_key";
+      std::string value = "example_value";
+
+      // create bool 
+      bool success = true;
+
+
+      // Iterate through the table
+      for (embedding_iterator_->SeekToFirst(); embedding_iterator_->Valid(); embedding_iterator_->Next())
+      {
+        // Access the key and value
+        std::string key = embedding_iterator_->key().ToString();
+        std::string value = embedding_iterator_->value().ToString();
+
+        // Process the key-value pair (replace with your logic)
+        // std::cout << "Key: " << key << ", Value: " << std::endl;
+
+        if (key == "E_1")
+        {
+
+        ASSIGN_OR_RETURN(absl::string_view data,
+                GetValueForKey(embedding_iterator_.get(), key));
+
+
+                          //std::cout << "IndexConfig: " << config.DebugString() << std::endl;
+
+
+
+          // print data in readable string format now instead of binary
+          //std::cout << "Value: " << data << std::endl;
+
+          // print real data output instead of stringyfied binary 
+         // std::cout << "Value: " << value << std::endl;
+
+         // data contains a stringyfied binary of the embeddings 
+         // print data in readable string format now instead of binary
+
+         // print contetnts of embedding_iterator_->value() in readable string format now instead of binary
+          //std::cout << "Value: " << embedding_iterator_->value().ToString() << std::endl;
+
+          // parse data into a proto embedding_iterator_->value() in readable string format now instead of binary
+         // std::string data2 = embedding_iterator_->value().ToString();
+
+
+
+        // if success is true print 
+        //if (success)
+        
+            //ASSIGN_OR_RETURN(auto partition, value);
+            //int partition_size = partition.size() / 140;
+
+            // print partition size
+            //std::cout << "Partition size: " << partition_size << std::endl;
+
+   
+
+
+           //std::cout << "Embedding: " <<data2  << std::endl;  
+        
+        //success = false;
+
+               
+          
+        }
+
+        if (key == kIndexConfigKey)
+        {
+
+          // printe value in readable string format now instead of binary
+          IndexConfig config;
+          if (!config.ParseFromString(std::string(value)))
+          {
+            return absl::InternalError("Unable to parse IndexConfig proto");
+          }
+          //std::cout << "IndexConfig: " << config.DebugString() << std::endl;
+
+          // Write IndexConfig to a file (for testing)
+          //std::string config_file = "/host_dir/index_config.txt";
+          //std::ofstream ofs(config_file, std::ofstream::out);
+          //ofs << config.DebugString();
+          //ofs.close();
+        }
+        if (key == "M_1")
+        {
+          break;
+        }
+      }
+
+      // Can we create a new index based on artifacts we do not have here directly?
+      return absl::OkStatus();
+    }
+
+    /* static */
+    absl::StatusOr<std::unique_ptr<Index>> Index::CreateFromIndexBuffer(
+        const char *buffer_data, size_t buffer_size)
+    {
+      // Use absl::WrapUnique() to call private constructor:
+      // https://abseil.io/tips/126.
+      std::unique_ptr<Index> index = absl::WrapUnique(new Index());
+      RETURN_IF_ERROR(index->InitFromBuffer(buffer_data, buffer_size));
+      return index;
+    }
+
+    absl::StatusOr<IndexConfig> Index::GetIndexConfig() const
+    {
+      std::string key(kIndexConfigKey);
+      ASSIGN_OR_RETURN(absl::string_view value,
+                       GetValueForKey(config_iterator_.get(), key));
+      IndexConfig config;
+
+      // temporary print
+
+      if (!config.ParseFromString(std::string(value)))
+      {
+        return absl::InternalError("Unable to parse IndexConfig proto");
+      }
+
+      return config;
+    }
+
+    absl::StatusOr<absl::string_view> Index::GetUserInfo() const
+    {
+      std::string key(kUserInfoKey);
+      // Intercept NotFound errors and return empty string instead.
+      auto user_info_or = GetValueForKey(info_iterator_.get(), key);
+      if (user_info_or.status().code() == absl::StatusCode::kNotFound)
+      {
+        return "";
+      }
+      return user_info_or;
+    }
+
+    absl::StatusOr<absl::string_view> Index::GetPartitionAtIndex(uint32_t i) const
+    {
+      std::string key(GetPartitionKey(i));
+      return GetValueForKey(embedding_iterator_.get(), key);
+    }
+    
+
+    absl::StatusOr<absl::string_view> Index::GetMetadataAtIndex(uint32_t i) const
+    {
+      std::string key(GetMetadataKey(i));
+      return GetValueForKey(metadata_iterator_.get(), key);
+    }
+
+
+  absl::Status Index::OverwriteAtKey() const { 
+    // overwrite key in leveldb index
+    std::string key = "M_1255";
+    std::string value = "example_value";
   }
-  leveldb::Slice value = iterator->value();
-  return absl::string_view(value.data(), value.size());
-}
-}  // namespace
 
-/* static */
-absl::StatusOr<std::unique_ptr<Index>> Index::CreateFromIndexBuffer(
-    const char* buffer_data, size_t buffer_size) {
-  // Use absl::WrapUnique() to call private constructor:
-  // https://abseil.io/tips/126.
-  std::unique_ptr<Index> index = absl::WrapUnique(new Index());
-  RETURN_IF_ERROR(index->InitFromBuffer(buffer_data, buffer_size));
-  return index;
-}
 
-absl::StatusOr<IndexConfig> Index::GetIndexConfig() const {
-  std::string key(kIndexConfigKey);
-  ASSIGN_OR_RETURN(absl::string_view value,
-                   GetValueForKey(config_iterator_.get(), key));
-  IndexConfig config;
-  if (!config.ParseFromString(std::string(value))) {
-    return absl::InternalError("Unable to parse IndexConfig proto");
-  }
-  return config;
-}
+    // Adds embedding into partion which is stored in a certain key/value pair in leveldb index
+    /*
+    absl::Status Index::AddEmbeddingToPartition(uint32_t i, std::string embedding) const {
+      // Does table_builder have overwrite functionality for a specidic key?
+      // table_builder.Add(leveldb::Slice(key), leveldb::Slice(partition_bytes[index].data(), partition_bytes[index].size()));
 
-absl::StatusOr<absl::string_view> Index::GetUserInfo() const {
-  std::string key(kUserInfoKey);
-  // Intercept NotFound errors and return empty string instead.
-  auto user_info_or = GetValueForKey(info_iterator_.get(), key);
-  if (user_info_or.status().code() == absl::StatusCode::kNotFound) {
-    return "";
-  }
-  return user_info_or;
-}
 
-absl::StatusOr<absl::string_view> Index::GetPartitionAtIndex(uint32_t i) const {
-  std::string key(GetPartitionKey(i));
-  return GetValueForKey(embedding_iterator_.get(), key);
-}
+      std::string key(GetPartitionKey(i));
+      leveldb::WriteBatch batch;
+      batch.Put(key, embedding);
+      leveldb::Status status = table_->GetDB()->Write(leveldb::WriteOptions(), &batch);
+      if (!status.ok()) {
+        return absl::InternalError(
+            absl::StrFormat("Unable to add embedding to partition: %s", status.ToString()));
+      }
+      return absl::OkStatus();
+    }
+    */
 
-absl::StatusOr<absl::string_view> Index::GetMetadataAtIndex(uint32_t i) const {
-  std::string key(GetMetadataKey(i));
-  return GetValueForKey(metadata_iterator_.get(), key);
-}
+    absl::Status Index::InitFromBuffer(const char *buffer_data,
+                                       size_t buffer_size)
+    {
 
-absl::Status Index::InitFromBuffer(const char* buffer_data,
-                                   size_t buffer_size) {
-  // Sanity check.
-  if (buffer_data == nullptr) {
-    return absl::InvalidArgumentError("Buffer cannot be null");
-  }
-  // Create file from buffer.
-  file_ = absl::make_unique<MemRandomAccessFile>(buffer_data, buffer_size);
-  // Create options with cache disabled, as this saves memory and has negligible
-  // impact on performance in this setup as any key can be accessed anytime.
-  leveldb::Options options;
-  cache_ = absl::WrapUnique(leveldb::NewLRUCache(0));
-  options.block_cache = cache_.get();
-  // Build Table from file and options.
-  leveldb::Table* table;
-  leveldb::Status status =
-      leveldb::Table::Open(options, file_.get(), buffer_size, &table);
-  if (!status.ok()) {
-    return absl::InternalError(
-        absl::StrFormat("Unable to open levelDB table: %s", status.ToString()));
-  }
-  table_ = absl::WrapUnique(table);
-  // Create iterators.
-  config_iterator_ =
-      absl::WrapUnique(table_->NewIterator(leveldb::ReadOptions()));
-  info_iterator_ =
-      absl::WrapUnique(table_->NewIterator(leveldb::ReadOptions()));
-  embedding_iterator_ =
-      absl::WrapUnique(table_->NewIterator(leveldb::ReadOptions()));
-  metadata_iterator_ =
-      absl::WrapUnique(table_->NewIterator(leveldb::ReadOptions()));
-  return absl::OkStatus();
-}
+      // Sanity check.
+      if (buffer_data == nullptr)
+      {
+        return absl::InvalidArgumentError("Buffer cannot be null");
+      }
+      // Create file from buffer.
+      file_ = absl::make_unique<MemRandomAccessFile>(buffer_data, buffer_size);
+      // Create options with cache disabled, as this saves memory and has negligible
+      // impact on performance in this setup as any key can be accessed anytime.
+      leveldb::Options options;
+      cache_ = absl::WrapUnique(leveldb::NewLRUCache(0));
+      options.block_cache = cache_.get();
+      // Build Table from file and options.
+      leveldb::Table *table;
 
-}  // namespace scann_ondevice
-}  // namespace tflite
+      // *file must remain live while this Table is in use.
+      leveldb::Status status =
+          leveldb::Table::Open(options, file_.get(), buffer_size, &table);
+      if (!status.ok())
+      {
+        return absl::InternalError(
+            absl::StrFormat("Unable to open levelDB table: %s", status.ToString()));
+      }
+      
+      table_ = absl::WrapUnique(table);
+
+    
+      // Create iterators.
+      config_iterator_ =
+          absl::WrapUnique(table_->NewIterator(leveldb::ReadOptions()));
+      info_iterator_ =
+          absl::WrapUnique(table_->NewIterator(leveldb::ReadOptions()));
+      embedding_iterator_ =
+          absl::WrapUnique(table_->NewIterator(leveldb::ReadOptions()));
+      metadata_iterator_ =
+          absl::WrapUnique(table_->NewIterator(leveldb::ReadOptions()));
+
+      return absl::OkStatus();
+    }
+
+  } // namespace scann_ondevice
+} // namespace tflite

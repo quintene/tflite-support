@@ -143,6 +143,14 @@ StatusOr<SearchResult> TextSearcher::Search(const std::string& input) {
   return InferWithFallback(input);
 }
 
+StatusOr<SearchResult> TextSearcher::AddEmbedding(const std::string& input, const std::string& metadata) {
+  // Should also run Inference but then with a different PostProcess step?
+  // Possible side solution is to use the PostProcess but with new private variables passed into the searcherPostProcess?
+  // Main problem is that we want to overwrite a buffer in the PostProcessor..
+  postprocessor_->setNewEmbeddingData(metadata);
+  return InferWithFallback(input);
+}
+
 StatusOr<absl::string_view> TextSearcher::GetUserInfo() {
   return postprocessor_->GetUserInfo();
 }

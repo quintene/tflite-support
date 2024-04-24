@@ -180,3 +180,21 @@ Java_org_tensorflow_lite_task_text_searcher_TextSearcher_searchNative(
     return nullptr;
   }
 }
+
+
+extern "C" JNIEXPORT jobject JNICALL
+Java_org_tensorflow_lite_task_text_searcher_TextSearcher_addNative(
+    JNIEnv* env, jclass thiz, jlong native_handle, jstring text, jstring metadata) {
+  auto* searcher = reinterpret_cast<TextSearcher*>(native_handle);
+  auto results_or = searcher->AddEmbedding(JStringToString(env, text),JStringToString(env, metadata));
+
+  if (results_or.ok()) {
+    return ConvertToSearchResults(env, results_or.value());
+  } else {
+    ThrowException(
+        env, GetExceptionClassNameForStatusCode(results_or.status().code()),
+        "Error occurred when searching the input text: %s",
+        results_or.status().message().data());
+    return nullptr;
+  }
+}

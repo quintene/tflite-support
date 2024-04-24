@@ -60,8 +60,18 @@ class SearchPostprocessor : public Postprocessor {
   // user info.
   tflite::support::StatusOr<absl::string_view> GetUserInfo();
 
+// initialize void 
+  absl::Status setNewEmbeddingData(const std::string& metadata);
+
+  // initialize void 
+  absl::Status resetNewEmbeddingData();
+
  private:
   using Postprocessor::Postprocessor;
+
+  // defina private boolean add
+  bool addEmbedding_ = false;
+  std::string metadata_ = "";
 
   absl::Status Init(
       std::unique_ptr<EmbeddingPostprocessor> embedding_postprocessor,

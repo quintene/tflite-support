@@ -52,12 +52,24 @@ absl::Status LevelDBStatusToAbsl(leveldb::Status leveldb_status) {
   }
 }
 
+
+void print_strings(absl::Span<const std::string> strings) {
+  // also print the key value 
+  
+    for (const auto& str : strings) {
+        std::cout << str << std::endl;
+    }
+}
+
+
 template <typename T>
 absl::StatusOr<std::string> CreateIndexBufferImpl(
     absl::Span<const T> database,
     absl::optional<absl::Span<const uint32_t>> partition_assignment,
     absl::Span<const std::string> metadata, const std::string& userinfo,
     IndexConfig index_config, bool compression) {
+
+
   size_t num_partitions = 1;
   if (partition_assignment) {
     if (partition_assignment->size() != metadata.size()) {
@@ -123,6 +135,10 @@ absl::StatusOr<std::string> CreateIndexBufferImpl(
                       leveldb::Slice(partition_bytes[index].data(),
                                      partition_bytes[index].size()));
   }
+ 
+  
+
+
   table_builder.Add(leveldb::Slice(kIndexConfigKey),
                     leveldb::Slice(index_config.SerializeAsString()));
   absl::btree_map<std::string, size_t> ordered_metadata_key_to_index;
@@ -153,11 +169,20 @@ absl::StatusOr<std::string> CreateIndexBuffer(
         "Can not have both float database and hashed database");
   }
 
+
+      // print hello buffer implementation 
+
+
+
+
   IndexConfig index_config;
   *index_config.mutable_scann_config() = artifacts.config;
   index_config.set_embedding_dim(artifacts.embedding_dim);
   if (artifacts.hashed_database.has_value()) {
     index_config.set_embedding_type(index_config.UINT8);
+
+
+
     return CreateIndexBufferImpl(artifacts.hashed_database.value(),
                                  artifacts.partition_assignment,
                                  artifacts.metadata, artifacts.userinfo,

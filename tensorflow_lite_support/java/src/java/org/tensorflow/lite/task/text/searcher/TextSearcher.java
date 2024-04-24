@@ -206,6 +206,17 @@ public final class TextSearcher extends BaseTaskApi {
     return searchNative(getNativeHandle(), text);
   }
 
+
+    /**
+   * Performs embedding extraction on the provided string input, followed by adding to the clostest nearest-neighbor
+   * in the index.
+   *
+   * @param text input text query to the model
+   */
+  public List<NearestNeighbor> add(String text, String metadata) {
+    return addNative(getNativeHandle(), text, metadata);
+  }
+
   private static TextSearcher createFromModelFdAndOptions(
       final int modelDescriptor,
       final long modelDescriptorLength,
@@ -278,6 +289,10 @@ public final class TextSearcher extends BaseTaskApi {
 
   /** The native method to search an input text string. */
   private static native List<NearestNeighbor> searchNative(long nativeHandle, String text);
+
+
+  /** The native method to add an input text string to. */
+  private static native List<NearestNeighbor> addNative(long nativeHandle, String text, String metadata);
 
   @Override
   protected void deinit(long nativeHandle) {

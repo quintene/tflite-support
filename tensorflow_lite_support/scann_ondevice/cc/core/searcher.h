@@ -49,15 +49,19 @@ bool AsymmetricHashFindNeighbors(const QueryInfo& query_info,
                                  Eigen::Ref<const Matrix8u> database,
                                  size_t global_offset, absl::Span<T> topn) {
   const int batch_size = query_info.query_lut->cols();
+
   if (topn.size() != batch_size) {
     return false;
   }
+
   int database_size = database.cols();
+
   Eigen::MatrixXf output(batch_size, database_size);
   internal::ComputeAHDistance(query_info, database, output);
 
   for (int i = 0; i < database_size; i++) {
     for (int j = 0; j < topn.size(); ++j) {
+
       topn[j].emplace(output(j, i), i + global_offset);
     }
   }

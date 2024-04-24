@@ -40,6 +40,8 @@ class Partitioner : public PartitionerInterface {
                  std::vector<std::vector<int>>* tokens) const override;
   int NumPartitions() const override;
 
+  bool AddEmbedding(const Eigen::Ref<const Eigen::VectorXf> &embedding) const;
+
   inline absl::optional<int> get_vector_dimension() const override {
     return leaves_.cols();
   }
@@ -63,6 +65,8 @@ class NoOpPartitioner : public PartitionerInterface {
                  std::vector<std::vector<int>>* tokens) const override;
 
   int NumPartitions() const override;
+  
+
   inline absl::optional<int> get_vector_dimension() const override {
     return absl::optional<int>();
   }

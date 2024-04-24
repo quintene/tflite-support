@@ -22,6 +22,7 @@ limitations under the License.
 #include <memory>
 #include <optional>
 #include <vector>
+#include <fstream>
 
 #include "absl/status/status.h"  // from @com_google_absl
 #include "absl/strings/str_format.h"  // from @com_google_absl
@@ -68,11 +69,23 @@ CreateEmbeddingPostprocessor(TfLiteEngine* engine,
                                         std::move(options));
 }
 
+// create function which uses metadatapopulator to overwrite the content in ModelMetadata filename
+/*absl::Status SearchPostprocessor::OverWriteIndexFileContentMetadata() {
+
+  ModelMetadataPopulator::CreateFromModelBuffer(const char* buffer_data, size_t buffer_size);
+};*/
+
 StatusOr<absl::string_view> GetIndexFileContentFromMetadata(
     const ModelMetadataExtractor& metadata_extractor,
     const TensorMetadata& tensor_metadata) {
   auto index_file_name = ModelMetadataExtractor::FindFirstAssociatedFileName(
       tensor_metadata, tflite::AssociatedFileType_SCANN_INDEX_FILE);
+
+      // log index_file_name
+      LOG(INFO) << "index_file_name: " << index_file_name;
+
+      // overwtite content in ModelMetadata 
+
   if (index_file_name.empty()) {
     return CreateStatusWithPayload(
         absl::StatusCode::kInvalidArgument,
@@ -113,6 +126,14 @@ StatusOr<SearchResult> SearchPostprocessor::Postprocess() {
   // Search the nearest-neighbor embedding.
   ASSIGN_OR_RETURN(SearchResult search_result,
                    embedding_searcher_->Search(embedding));
+
+  if (addEmbedding_) {
+    RETURN_IF_ERROR(embedding_searcher_->AppendToIndex(embedding, metadata_));
+    // Reset the boolean
+    resetNewEmbeddingData();
+  }
+
+
   return search_result;
 }
 
@@ -120,12 +141,41 @@ StatusOr<absl::string_view> SearchPostprocessor::GetUserInfo() {
   return embedding_searcher_->GetUserInfo();
 }
 
+// initialize setNewEmbeddingData
+absl::Status SearchPostprocessor::setNewEmbeddingData(const std::string& metadata) {
+  // Set the boolean to true
+  addEmbedding_ = true;
+  // set metadata to empty string
+  metadata_ = metadata;
+
+  return absl::OkStatus();
+}
+
+// initialize resetNewEmbeddingData
+absl::Status SearchPostprocessor::resetNewEmbeddingData() {
+  // Set the boolean to false
+  addEmbedding_ = false;
+  // set metadata to empty string
+  metadata_ = "";
+
+  return absl::OkStatus();
+}
+
+
 absl::Status SearchPostprocessor::Init(
     std::unique_ptr<EmbeddingPostprocessor> embedding_postprocessor,
     std::unique_ptr<SearchOptions> options) {
   embedding_postprocessor_ = std::move(embedding_postprocessor);
 
   if (options->has_index_file()) {
+    
+    // TODO: Make dynamic in later sprint
+    // Get a reference to the ExternalFile
+    //core::ExternalFile* file = options->mutable_index_file();
+    //file->set_file_content("hello world");
+    // get path from file
+    //LOG(INFO) << "file path: " << file->file_name();
+
     ASSIGN_OR_RETURN(embedding_searcher_,
                      EmbeddingSearcher::Create(std::move(options)));
   } else {

@@ -52,6 +52,8 @@ class ExternalFileHandler {
   // valid as long as the ExternalFileHandler is alive.
   absl::string_view GetFileContent();
 
+  absl::Status WriteData(const std::string& data); 
+
  private:
   // Private constructor, called from CreateFromExternalFile().
   explicit ExternalFileHandler(const ExternalFile* external_file)

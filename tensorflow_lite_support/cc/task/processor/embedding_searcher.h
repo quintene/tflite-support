@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "tensorflow_lite_support/scann_ondevice/cc/core/partitioner.h"
 #include "tensorflow_lite_support/scann_ondevice/cc/core/processor.h"
+#include "tensorflow_lite_support/scann_ondevice/cc/core/indexer.h"
 #include "tensorflow_lite_support/scann_ondevice/cc/core/top_n_amortized_constant.h"
 #include "absl/strings/string_view.h"  // from @com_google_absl
 #include "absl/types/span.h"  // from @com_google_absl
@@ -33,6 +34,7 @@ limitations under the License.
 #include "tensorflow_lite_support/cc/task/processor/proto/search_options.pb.h"
 #include "tensorflow_lite_support/cc/task/processor/proto/search_result.pb.h"
 #include "tensorflow_lite_support/scann_ondevice/cc/index.h"
+#include "tensorflow_lite_support/scann_ondevice/cc/index_builder.h"
 #include "tensorflow_lite_support/scann_ondevice/proto/index_config.pb.h"
 
 namespace tflite {
@@ -67,6 +69,10 @@ class EmbeddingSearcher {
   // user info.
   tflite::support::StatusOr<absl::string_view> GetUserInfo();
 
+  // Custom Append To index function
+absl::Status AppendToIndex(const ::tflite::task::processor::Embedding& embedding, const std::string metadataString );       
+  
+
  private:
   absl::Status Init(
       std::unique_ptr<SearchOptions> options,
@@ -78,6 +84,8 @@ class EmbeddingSearcher {
   absl::Status LinearSearch(Eigen::Ref<Eigen::MatrixXf> query,
                             std::vector<int> leaves_to_search,
                             absl::Span<tflite::scann_ondevice::core::TopN> top_n);
+
+                         
 
   std::unique_ptr<SearchOptions> options_;
 
@@ -91,6 +99,7 @@ class EmbeddingSearcher {
   tflite::scann_ondevice::core::DistanceMeasure distance_measure_;
   std::unique_ptr<tflite::scann_ondevice::core::PartitionerInterface> partitioner_;
   std::shared_ptr<tflite::scann_ondevice::core::AsymmetricHashQuerier> quantizer_;
+  std::shared_ptr<tflite::scann_ondevice::core::AsymmetricHashingIndexer> indexer_;
 };
 
 }  // namespace processor

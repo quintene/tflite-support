@@ -32,6 +32,7 @@ limitations under the License.
 #include "tensorflow_lite_support/cc/task/core/external_file_handler.h"
 #include "tensorflow_lite_support/cc/task/core/proto/external_file_proto_inc.h"
 #include "tensorflow_lite_support/metadata/cc/metadata_extractor.h"
+#include "tensorflow_lite_support/metadata/cc/metadata_populator.h"
 
 #ifdef ABSL_HAVE_MMAP
 #include <sys/mman.h>
@@ -195,6 +196,9 @@ class TfLiteEngine {
   // TFLite Metadata extractor built from the model.
   std::unique_ptr<tflite::metadata::ModelMetadataExtractor>
       model_metadata_extractor_;
+
+  std::unique_ptr<tflite::metadata::ModelMetadataPopulator>
+      model_metadata_populator_;      
 
   // Mechanism used by TF Lite to map Ops referenced in the FlatBuffer model to
   // actual implementation. Defaults to TF Lite BuiltinOpResolver.

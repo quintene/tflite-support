@@ -82,6 +82,7 @@ cc_library_with_tflite(
     ],
 )
 
+
 cc_library_with_tflite(
     name = "audio_preprocessor",
     srcs = ["audio_preprocessor.cc"],
@@ -202,6 +203,7 @@ cc_library(
     srcs = ["embedding_searcher.cc"],
     hdrs = ["embedding_searcher.h"],
     deps = [
+
         "//tensorflow_lite_support/cc:common",
         "//tensorflow_lite_support/cc/port:status_macros",
         "//tensorflow_lite_support/cc/port:statusor",
@@ -213,6 +215,8 @@ cc_library(
         "//tensorflow_lite_support/scann_ondevice/cc/core:partitioner",
         "//tensorflow_lite_support/scann_ondevice/cc/core:processor",
         "//tensorflow_lite_support/scann_ondevice/cc/core:searcher",
+        "//tensorflow_lite_support/scann_ondevice/cc/core:indexer",
+        "//tensorflow_lite_support/scann_ondevice/cc:index_builder",
         "//tensorflow_lite_support/scann_ondevice/cc/core:serialized_searcher_cc_proto",
         "//tensorflow_lite_support/scann_ondevice/cc/core:top_n_amortized_constant",
         "//tensorflow_lite_support/scann_ondevice/proto:index_config_cc_proto",
@@ -222,5 +226,6 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
         "@eigen//:eigen3",
+        
     ],
 )

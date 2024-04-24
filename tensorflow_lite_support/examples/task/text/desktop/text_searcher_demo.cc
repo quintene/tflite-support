@@ -99,6 +99,7 @@ void DisplayResults(const processor::SearchResult& result) {
 }
 
 absl::Status Search() {
+
   // Build TextSearcher.
   const TextSearcherOptions options = BuildOptions();
   ASSIGN_OR_RETURN(
@@ -123,6 +124,11 @@ absl::Status Search() {
   return absl::OkStatus();
 }
 
+
+absl::Status AddEmbedding() {
+    std::cout << absl::StrFormat(" Adding new entry!\n");
+}
+
 }  // namespace text
 }  // namespace task
 }  // namespace tflite
@@ -138,6 +144,9 @@ int main(int argc, char** argv) {
     std::cerr << "Missing mandatory 'input_sentence' argument.\n";
     return 1;
   }
+
+
+  // Also make example able of adding items. 
 
   // Run search.
   absl::Status status = tflite::task::text::Search();

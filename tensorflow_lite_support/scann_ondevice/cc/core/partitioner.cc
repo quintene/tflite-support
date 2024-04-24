@@ -22,94 +22,165 @@ using Eigen::VectorXf;
 using std::pair;
 using std::vector;
 
-namespace tflite {
-namespace scann_ondevice {
-namespace core {
+namespace tflite
+{
+  namespace scann_ondevice
+  {
+    namespace core
+    {
 
-std::unique_ptr<Partitioner> Partitioner::Create(
-    const PartitionerProto& proto) {
-  MatrixXf result(0, 0);
+      std::unique_ptr<Partitioner> Partitioner::Create(
+          const PartitionerProto &proto)
+      {
+        MatrixXf result(0, 0);
 
-  int dims;
-  int leaves = proto.leaf_size();
-  if (leaves > 0) {
-    dims = proto.leaf(0).dimension_size();
-    result = MatrixXf(leaves, dims);
-    for (int i = 0; i < leaves; ++i) {
-      if (proto.leaf(i).dimension_size() != dims) {
-        LOG(ERROR) << "Dimension mismatch at " << i << "-th leaf : expected "
-                   << dims << " but was " << proto.leaf(i).dimension_size();
-        return nullptr;
+        int dims;
+        int leaves = proto.leaf_size();
+        if (leaves > 0)
+        {
+          dims = proto.leaf(0).dimension_size();
+          result = MatrixXf(leaves, dims);
+          for (int i = 0; i < leaves; ++i)
+          {
+            if (proto.leaf(i).dimension_size() != dims)
+            {
+              LOG(ERROR) << "Dimension mismatch at " << i << "-th leaf : expected "
+                         << dims << " but was " << proto.leaf(i).dimension_size();
+              return nullptr;
+            }
+            for (int j = 0; j < dims; ++j)
+            {
+              result(i, j) = proto.leaf(i).dimension(j);
+            }
+          }
+        }
+
+        VectorXf leaf_norms = result.rowwise().squaredNorm();
+        return std::unique_ptr<Partitioner>(new Partitioner(
+            std::move(result), std::move(leaf_norms), proto.query_distance()));
       }
-      for (int j = 0; j < dims; ++j) {
-        result(i, j) = proto.leaf(i).dimension(j);
+
+      bool Partitioner::Partition(const Eigen::Ref<const Eigen::MatrixXf> &queries,
+                                  vector<vector<int>> *tokens) const
+      {
+        if (queries.cols() != tokens->size())
+        {
+          LOG(ERROR) << "Number of tokens is " << tokens->size() << ", "
+                     << queries.cols() << " expected.";
+          return false;
+        }
+        MatrixXf dist = -1 * leaves_ * queries;
+
+        if (distance_ == SQUARED_L2_DISTANCE)
+        {
+          if (queries.rows() != leaves_.cols())
+          {
+            LOG(ERROR) << "Query dimensions is " << queries.rows() << ", "
+                       << leaves_.cols() << " expected.";
+            return false;
+          }
+          dist = 2 * dist;
+          dist.colwise() += leaf_norms_;
+        }
+
+        for (int i = 0; i < queries.cols(); ++i)
+        {
+          int n = (*tokens)[i].size();
+          vector<pair<float, int>> results;
+          results.reserve(leaves_.rows());
+          for (int j = 0; j < leaves_.rows(); ++j)
+          {
+            results.emplace_back(dist(j, i), j);
+          }
+          std::nth_element(results.begin(), results.begin() + n, results.end(),
+                           std::less<std::pair<float, int>>());
+          for (int j = 0; j < n; ++j)
+          {
+            (*tokens)[i][j] = results[j].second;
+          }
+        }
+        return true;
       }
-    }
-  }
 
-  VectorXf leaf_norms = result.rowwise().squaredNorm();
-  return std::unique_ptr<Partitioner>(new Partitioner(
-      std::move(result), std::move(leaf_norms), proto.query_distance()));
-}
+      int Partitioner::NumPartitions() const { return leaves_.rows(); }
 
-bool Partitioner::Partition(const Eigen::Ref<const Eigen::MatrixXf>& queries,
-                            vector<vector<int>>* tokens) const {
-  if (queries.cols() != tokens->size()) {
-    LOG(ERROR) << "Number of tokens is " << tokens->size() << ", "
-               << queries.cols() << " expected.";
-    return false;
-  }
-  MatrixXf dist = -1 * leaves_ * queries;
+      // Add a embedding to an clostest partion wby k-mean clustering.
+      bool Partitioner::AddEmbedding(const Eigen::Ref<const Eigen::VectorXf> &embedding) const
+      {
 
-  if (distance_ == SQUARED_L2_DISTANCE) {
-    if (queries.rows() != leaves_.cols()) {
-      LOG(ERROR) << "Query dimensions is " << queries.rows() << ", "
-                 << leaves_.cols() << " expected.";
-      return false;
-    }
-    dist = 2 * dist;
-    dist.colwise() += leaf_norms_;
-  }
+        // find closest partition 
+        /*int partition = 0;
+        float min_dist = std::numeric_limits<float>::max();
+        for (int i = 0; i < leaves_.rows(); ++i)
+        {
+          float dist = (embedding - leaves_.row(i)).squaredNorm();
+          if (dist < min_dist)
+          {
+            min_dist = dist;
+            partition = i;
+          }
+        }*/
+        
+        if (embedding.size() != leaves_.cols())
+        {
+          LOG(ERROR) << "Embedding dimensions is " << embedding.size() << ", "
+                     << leaves_.cols() << " expected.";
+          return false;
+        }
 
-  for (int i = 0; i < queries.cols(); ++i) {
-    int n = (*tokens)[i].size();
-    vector<pair<float, int>> results;
-    results.reserve(leaves_.rows());
-    for (int j = 0; j < leaves_.rows(); ++j) {
-      results.emplace_back(dist(j, i), j);
-    }
-    std::nth_element(results.begin(), results.begin() + n, results.end(),
-                     std::less<std::pair<float, int>>());
-    for (int j = 0; j < n; ++j) {
-      (*tokens)[i][j] = results[j].second;
-    }
-  }
-  return true;
-}
+         /*
+        if (partition >= leaves_.rows())
+        {
+          LOG(ERROR) << "Partition index " << partition << " is larger than number of partitions: " << leaves_.rows();
+          return false;
+        }
 
-int Partitioner::NumPartitions() const { return leaves_.rows(); }
+        // Add embedding to partition.
+       
+        leaves_.row(partition) += embedding;
+        leaf_norms_(partition) = leaves_.row(partition).squaredNorm();
 
-bool NoOpPartitioner::Partition(
-    const Eigen::Ref<const Eigen::MatrixXf>& queries,
-    std::vector<std::vector<int>>* tokens) const {
-  if (queries.cols() != tokens->size()) {
-    LOG(ERROR) << "Number of tokens is " << tokens->size() << ", "
-               << queries.cols() << " expected.";
-    return false;
-  }
-  for (int i = 0; i < tokens->size(); ++i) {
-    if ((*tokens)[i].size() != 1) {
-      LOG(ERROR) << "Query " << i << " expects " << tokens[i].size()
-                 << " tokens to search but NoOpPartitioner can provide only 1.";
-      return false;
-    }
-    (*tokens)[i][0] = 0;
-  }
-  return true;
-}
+        // Re-calculate centroid of partition.
+        VectorXf centroid = leaves_.row(partition) / embedding.size();
+        for (int i = 0; i < embedding.size(); ++i)
+        {
+          leaves_(partition, i) = centroid(i);
+        }
+        leaf_norms_(partition) = leaves_.row(partition).squaredNorm();
+        */
+        return true;
+      }
 
-int NoOpPartitioner::NumPartitions() const { return 1; }
 
-}  // namespace core
-}  // namespace scann_ondevice
-}  // namespace tflite
+
+      bool NoOpPartitioner::Partition(
+          const Eigen::Ref<const Eigen::MatrixXf> &queries,
+          std::vector<std::vector<int>> *tokens) const
+      {
+        if (queries.cols() != tokens->size())
+        {
+          LOG(ERROR) << "Number of tokens is " << tokens->size() << ", "
+                     << queries.cols() << " expected.";
+          return false;
+        }
+        for (int i = 0; i < tokens->size(); ++i)
+        {
+          if ((*tokens)[i].size() != 1)
+          {
+            LOG(ERROR) << "Query " << i << " expects " << tokens[i].size()
+                       << " tokens to search but NoOpPartitioner can provide only 1.";
+            return false;
+          }
+          (*tokens)[i][0] = 0;
+        }
+        return true;
+      }
+
+      
+
+
+      int NoOpPartitioner::NumPartitions() const { return 1; }
+
+    } // namespace core
+  }   // namespace scann_ondevice
+} // namespace tflite

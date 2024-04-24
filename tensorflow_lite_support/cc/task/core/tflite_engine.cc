@@ -131,6 +131,11 @@ absl::Status TfLiteEngine::InitializeFromModelFileHandler(
       tflite::metadata::ModelMetadataExtractor::CreateFromModelBuffer(
           buffer_data, buffer_size));
 
+ /*ASSIGN_OR_RETURN(
+      model_metadata_populator_,
+      tflite::metadata::ModelMetadataPopulator::CreateFromModelBuffer(
+          buffer_data, buffer_size));*/
+          
   return absl::OkStatus();
 }
 

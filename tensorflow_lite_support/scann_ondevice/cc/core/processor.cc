@@ -125,6 +125,12 @@ bool AsymmetricHashQuerier::Process(
   int k_codes = codebooks_[0].rows();
   int n_subspaces = codebooks_.size();
   int n_queries = queries.cols();
+
+  // print dims_
+  LOG(INFO) << "dims_ = " << dims_;
+  LOG(INFO) << "n_subspaces = " << n_subspaces;
+  LOG(INFO) << "k_codes = " << k_codes;
+
   if (dims_ != queries.rows()) {
     LOG(ERROR) << "Query dimensions is " << queries.rows() << ", " << dims_
                << " expected.";

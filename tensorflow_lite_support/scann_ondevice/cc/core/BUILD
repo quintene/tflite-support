@@ -122,6 +122,8 @@ cc_library(
     ],
 )
 
+
+#bazel run -c opt   tensorflow_lite_support/scann_ondevice/cc/core:indexer_test  
 cc_test(
     name = "indexer_test",
     srcs = ["indexer_test.cc"],

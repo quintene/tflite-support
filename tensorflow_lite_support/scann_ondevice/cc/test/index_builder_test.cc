@@ -224,11 +224,22 @@ TEST_P(PopulateIndexFileTest, WritesHashedDatabaseWithPartitioner) {
         LookupKey(hashed_table_iterator.get(), absl::StrFormat("E_%d", i)));
     std::vector<char> hashed_partition(raw_partition_hashed.begin(),
                                        raw_partition_hashed.end());
+
+    for(const auto& c : hashed_partition) {
+        std::cout << c;
+    }
+
+
     std::vector<char> expected = {static_cast<char>(i), static_cast<char>(i),
                                   static_cast<char>(i + kNumPartitions),
                                   static_cast<char>(i + kNumPartitions)};
     EXPECT_THAT(hashed_partition, ElementsAreArray(expected));
   }
+
+    // print kNumPartitions
+  std::cout << "kNumPartitions: " << kNumPartitions << std::endl;
+
+  
 
   // Similarly:
   // * metadata 0 contains metadata 0,
